@@ -87,6 +87,24 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	screen.Fill(color.RGBA{120, 180, 255, 255})
 	opts := ebiten.DrawImageOptions{}
 
+	g.drawBackground(screen, &opts)
+
+	g.drawSprite(screen, g.player.Sprite, &opts)
+
+	for _, enemy := range g.enemies {
+		g.drawSprite(screen, enemy.Sprite, &opts)
+	}
+
+	for _, potion := range g.potions {
+		g.drawSprite(screen, potion.Sprite, &opts)
+	}
+}
+
+func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
+	return ebiten.WindowSize()
+}
+
+func (g *Game) drawBackground(screen *ebiten.Image, opts *ebiten.DrawImageOptions) {
 	// loop over each layer
 	for _, layer := range g.tileMapJSON.Layers {
 		// loop over tiles in layer
@@ -113,26 +131,12 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			screen.DrawImage(
 				// cropping out the tile we want from the spritesheet
 				g.tileMapImg.SubImage(image.Rect(srcX, srcY, srcX+16, srcY+16)).(*ebiten.Image),
-				&opts,
+				opts,
 			)
 			// reset the opts for the next tile
 			opts.GeoM.Reset()
 		}
 	}
-
-	g.drawSprite(screen, g.player.Sprite, &opts)
-
-	for _, enemy := range g.enemies {
-		g.drawSprite(screen, enemy.Sprite, &opts)
-	}
-
-	for _, potion := range g.potions {
-		g.drawSprite(screen, potion.Sprite, &opts)
-	}
-}
-
-func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
-	return ebiten.WindowSize()
 }
 
 func (g *Game) drawSprite(screen *ebiten.Image, sprite *entities.Sprite, opts *ebiten.DrawImageOptions) {
