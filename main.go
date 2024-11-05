@@ -6,37 +6,17 @@ import (
 	"image/color"
 	"log"
 
+	"github.com/ev-the-dev/rpg-tutorial/entities"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 )
 
-type Enemy struct {
-	*Sprite
-	FollowsPlayer bool
-}
-
 type Game struct {
-	player      *Player
-	enemies     []*Enemy
-	potions     []*Potion
+	player      *entities.Player
+	enemies     []*entities.Enemy
+	potions     []*entities.Potion
 	tileMapJSON *TileMapJSON
 	tileMapImg  *ebiten.Image
-}
-
-type Player struct {
-	*Sprite
-	Health uint
-}
-
-type Potion struct {
-	*Sprite
-	AmtHeal uint
-}
-
-type Sprite struct {
-	Img *ebiten.Image
-	X   float64
-	Y   float64
 }
 
 func (g *Game) Update() error {
@@ -138,7 +118,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 	return ebiten.WindowSize()
 }
 
-func drawSprite(screen *ebiten.Image, sprite *Sprite, opts *ebiten.DrawImageOptions) {
+func drawSprite(screen *ebiten.Image, sprite *entities.Sprite, opts *ebiten.DrawImageOptions) {
 	opts.GeoM.Translate(sprite.X, sprite.Y)
 
 	screen.DrawImage(sprite.Img.SubImage(
@@ -180,17 +160,17 @@ func main() {
 	}
 
 	if err := ebiten.RunGame(&Game{
-		player: &Player{
-			Sprite: &Sprite{
+		player: &entities.Player{
+			Sprite: &entities.Sprite{
 				Img: playerImg,
 				X:   50,
 				Y:   50,
 			},
 			Health: 3,
 		},
-		enemies: []*Enemy{
+		enemies: []*entities.Enemy{
 			{
-				Sprite: &Sprite{
+				Sprite: &entities.Sprite{
 					Img: skeletonImg,
 					X:   100,
 					Y:   100,
@@ -198,7 +178,7 @@ func main() {
 				FollowsPlayer: true,
 			},
 			{
-				Sprite: &Sprite{
+				Sprite: &entities.Sprite{
 					Img: skeletonImg,
 					X:   150,
 					Y:   150,
@@ -206,9 +186,9 @@ func main() {
 				FollowsPlayer: false,
 			},
 		},
-		potions: []*Potion{
+		potions: []*entities.Potion{
 			{
-				Sprite: &Sprite{
+				Sprite: &entities.Sprite{
 					Img: potionImg,
 					X:   210,
 					Y:   100,
