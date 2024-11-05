@@ -12,11 +12,12 @@ import (
 )
 
 type Game struct {
-	player      *entities.Player
+	camera      *Camera
 	enemies     []*entities.Enemy
+	player      *entities.Player
 	potions     []*entities.Potion
-	tileMapJSON *TileMapJSON
 	tileMapImg  *ebiten.Image
+	tileMapJSON *TileMapJSON
 }
 
 func (g *Game) Update() error {
@@ -58,6 +59,20 @@ func (g *Game) Update() error {
 		}
 	}
 
+	screenWidth, screenHeight := ebiten.WindowSize()
+	g.camera.FollowTarget(
+		g.player.X+8, // +8 to center camera on middle of player sprite
+		g.player.Y+8,
+		float64(screenWidth),
+		float64(screenHeight),
+	)
+	g.camera.Constrain(
+		float64(g.tileMapJSON.Layers[0].Width*16.0),
+		float64(g.tileMapJSON.Layers[0].Height*16.0),
+		float64(screenWidth),
+		float64(screenHeight),
+	)
+
 	return nil
 }
 
@@ -92,6 +107,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 			// draw tile at appropriate x,y position
 			opts.GeoM.Translate(float64(x), float64(y))
+
+			opts.GeoM.Translate(g.camera.X, g.camera.Y)
 			// draw the tile
 			screen.DrawImage(
 				// cropping out the tile we want from the spritesheet
@@ -103,14 +120,14 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		}
 	}
 
-	drawSprite(screen, g.player.Sprite, &opts)
+	g.drawSprite(screen, g.player.Sprite, &opts)
 
 	for _, enemy := range g.enemies {
-		drawSprite(screen, enemy.Sprite, &opts)
+		g.drawSprite(screen, enemy.Sprite, &opts)
 	}
 
 	for _, potion := range g.potions {
-		drawSprite(screen, potion.Sprite, &opts)
+		g.drawSprite(screen, potion.Sprite, &opts)
 	}
 }
 
@@ -118,8 +135,9 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 	return ebiten.WindowSize()
 }
 
-func drawSprite(screen *ebiten.Image, sprite *entities.Sprite, opts *ebiten.DrawImageOptions) {
+func (g *Game) drawSprite(screen *ebiten.Image, sprite *entities.Sprite, opts *ebiten.DrawImageOptions) {
 	opts.GeoM.Translate(sprite.X, sprite.Y)
+	opts.GeoM.Translate(g.camera.X, g.camera.Y)
 
 	screen.DrawImage(sprite.Img.SubImage(
 		image.Rect(0, 0, 16, 16),
@@ -160,6 +178,7 @@ func main() {
 	}
 
 	if err := ebiten.RunGame(&Game{
+		camera: NewCamera(0.0, 0.0),
 		player: &entities.Player{
 			Sprite: &entities.Sprite{
 				Img: playerImg,
@@ -196,8 +215,8 @@ func main() {
 				AmtHeal: 1,
 			},
 		},
-		tileMapJSON: tileMapJson,
 		tileMapImg:  tileMapImg,
+		tileMapJSON: tileMapJson,
 	}); err != nil {
 		log.Fatal(err)
 	}
