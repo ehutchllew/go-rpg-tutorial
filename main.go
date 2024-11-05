@@ -16,9 +16,11 @@ type Enemy struct {
 }
 
 type Game struct {
-	player  *Player
-	enemies []*Enemy
-	potions []*Potion
+	player      *Player
+	enemies     []*Enemy
+	potions     []*Potion
+	tileMapJSON *TileMapJSON
+	tileMapImg  *ebiten.Image
 }
 
 type Player struct {
@@ -79,17 +81,56 @@ func (g *Game) Update() error {
 	return nil
 }
 
+/*
+* NOTE: When drawing, assets/sprites get 'layered'.
+* so, in order for something to appear on top it must
+* be drawn after.
+* Example: background drawn first, then trees, then
+* player.
+ */
 func (g *Game) Draw(screen *ebiten.Image) {
 	screen.Fill(color.RGBA{120, 180, 255, 255})
+	opts := ebiten.DrawImageOptions{}
 
-	drawSprite(screen, g.player.Sprite)
+	// loop over each layer
+	for _, layer := range g.tileMapJSON.Layers {
+		// loop over tiles in layer
+		for imgIdx, imgId := range layer.Data {
+			// get tile position of tile
+			x := imgIdx % layer.Width
+			y := imgIdx / layer.Width
+			// convert tile position to pixel position
+			x *= 16
+			y *= 16
+
+			// get the position on the TileSet image where the tile ID is
+			srcX := (imgId - 1) % 22 // 22 hardcoded because tileset file shows last index on row as id 21 (0th based)
+			srcY := (imgId - 1) / 22
+			// convert the src tile position to src pixel position
+			srcX *= 16
+			srcY *= 16
+
+			// draw tile at appropriate x,y position
+			opts.GeoM.Translate(float64(x), float64(y))
+			// draw the tile
+			screen.DrawImage(
+				// cropping out the tile we want from the spritesheet
+				g.tileMapImg.SubImage(image.Rect(srcX, srcY, srcX+16, srcY+16)).(*ebiten.Image),
+				&opts,
+			)
+			// reset the opts for the next tile
+			opts.GeoM.Reset()
+		}
+	}
+
+	drawSprite(screen, g.player.Sprite, &opts)
 
 	for _, enemy := range g.enemies {
-		drawSprite(screen, enemy.Sprite)
+		drawSprite(screen, enemy.Sprite, &opts)
 	}
 
 	for _, potion := range g.potions {
-		drawSprite(screen, potion.Sprite)
+		drawSprite(screen, potion.Sprite, &opts)
 	}
 }
 
@@ -97,14 +138,13 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 	return ebiten.WindowSize()
 }
 
-func drawSprite(screen *ebiten.Image, sprite *Sprite) {
-	opts := ebiten.DrawImageOptions{}
+func drawSprite(screen *ebiten.Image, sprite *Sprite, opts *ebiten.DrawImageOptions) {
 	opts.GeoM.Translate(sprite.X, sprite.Y)
 
 	screen.DrawImage(sprite.Img.SubImage(
 		image.Rect(0, 0, 16, 16),
 	).(*ebiten.Image),
-		&opts)
+		opts)
 
 	opts.GeoM.Reset()
 }
@@ -125,6 +165,16 @@ func main() {
 	}
 
 	skeletonImg, _, err := ebitenutil.NewImageFromFile("./assets/images/skeleton.png")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	tileMapImg, _, err := ebitenutil.NewImageFromFile("./assets/images/TilesetFloor.png")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	tileMapJson, err := NewTileMapJSON("./assets/maps/spawn.json")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -166,6 +216,8 @@ func main() {
 				AmtHeal: 1,
 			},
 		},
+		tileMapJSON: tileMapJson,
+		tileMapImg:  tileMapImg,
 	}); err != nil {
 		log.Fatal(err)
 	}
