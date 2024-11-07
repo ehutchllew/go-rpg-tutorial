@@ -18,6 +18,7 @@ type Game struct {
 	potions     []*entities.Potion
 	tileMapImg  *ebiten.Image
 	tileMapJSON *TileMapJSON
+	tilesets    []Tileset
 }
 
 func (g *Game) Update() error {
@@ -106,9 +107,14 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 
 func (g *Game) drawBackground(screen *ebiten.Image, opts *ebiten.DrawImageOptions) {
 	// loop over each layer
-	for _, layer := range g.tileMapJSON.Layers {
+	for layerIndex, layer := range g.tileMapJSON.Layers {
 		// loop over tiles in layer
 		for imgIdx, imgId := range layer.Data {
+
+			if imgId == 0 {
+				continue
+			}
+
 			// get tile position of tile
 			x := imgIdx % layer.Width
 			y := imgIdx / layer.Width
@@ -116,25 +122,35 @@ func (g *Game) drawBackground(screen *ebiten.Image, opts *ebiten.DrawImageOption
 			x *= 16
 			y *= 16
 
-			// get the position on the TileSet image where the tile ID is
-			srcX := (imgId - 1) % 22 // 22 hardcoded because tileset file shows last index on row as id 21 (0th based)
-			srcY := (imgId - 1) / 22
-			// convert the src tile position to src pixel position
-			srcX *= 16
-			srcY *= 16
+			img := g.tilesets[layerIndex].Img(imgId)
 
-			// draw tile at appropriate x,y position
 			opts.GeoM.Translate(float64(x), float64(y))
 
 			opts.GeoM.Translate(g.camera.X, g.camera.Y)
-			// draw the tile
-			screen.DrawImage(
-				// cropping out the tile we want from the spritesheet
-				g.tileMapImg.SubImage(image.Rect(srcX, srcY, srcX+16, srcY+16)).(*ebiten.Image),
-				opts,
-			)
-			// reset the opts for the next tile
+
+			screen.DrawImage(img, opts)
+
 			opts.GeoM.Reset()
+
+			// // get the position on the TileSet image where the tile ID is
+			// srcX := (imgId - 1) % 22 // 22 hardcoded because tileset file shows last index on row as id 21 (0th based)
+			// srcY := (imgId - 1) / 22
+			// // convert the src tile position to src pixel position
+			// srcX *= 16
+			// srcY *= 16
+
+			// // draw tile at appropriate x,y position
+			// opts.GeoM.Translate(float64(x), float64(y))
+
+			// opts.GeoM.Translate(g.camera.X, g.camera.Y)
+			// // draw the tile
+			// screen.DrawImage(
+			// 	// cropping out the tile we want from the spritesheet
+			// 	g.tileMapImg.SubImage(image.Rect(srcX, srcY, srcX+16, srcY+16)).(*ebiten.Image),
+			// 	opts,
+			// )
+			// // reset the opts for the next tile
+			// opts.GeoM.Reset()
 		}
 	}
 }
@@ -158,26 +174,32 @@ func main() {
 
 	playerImg, _, err := ebitenutil.NewImageFromFile("./assets/images/ninja.png")
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("playerImg err: %v", err)
 	}
 
 	potionImg, _, err := ebitenutil.NewImageFromFile("./assets/images/heart_potion.png")
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("potionImg err: %v", err)
 	}
 
 	skeletonImg, _, err := ebitenutil.NewImageFromFile("./assets/images/skeleton.png")
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("skeletonImg err: %v", err)
 	}
 
 	tileMapImg, _, err := ebitenutil.NewImageFromFile("./assets/images/TilesetFloor.png")
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("tileMapImg err: %v", err)
 	}
 
 	tileMapJson, err := NewTileMapJSON("./assets/maps/spawn.json")
 	if err != nil {
+		log.Fatalf("tileMapJson err: %v", err)
+	}
+
+	tilesets, err := tileMapJson.GenTilesets()
+	if err != nil {
+		log.Fatalf("tilesets err: %v", err)
 		log.Fatal(err)
 	}
 
@@ -221,6 +243,7 @@ func main() {
 		},
 		tileMapImg:  tileMapImg,
 		tileMapJSON: tileMapJson,
+		tilesets:    tilesets,
 	}); err != nil {
 		log.Fatal(err)
 	}
