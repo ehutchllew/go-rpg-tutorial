@@ -27,8 +27,8 @@ type UniformTileset struct {
 func (u *UniformTileset) Img(id int) *ebiten.Image {
 	id -= u.gid
 	// get the position on the TileSet image where the tile ID is
-	srcX := (id - 1) % 22 // 22 hardcoded because tileset file shows last index on row as id 21 (0th based)
-	srcY := (id - 1) / 22
+	srcX := (id) % 22 // 22 hardcoded because tileset file shows last index on row as id 21 (0th based)
+	srcY := (id) / 22
 	// convert the src tile position to src pixel position
 	srcX *= 16
 	srcY *= 16
