@@ -29,6 +29,12 @@
       "image": "..\/..\/images\/building3.png",
       "imageheight": 48,
       "imagewidth": 48
+    },
+    {
+      "id": 3,
+      "image": "..\/..\/images\/knight.png",
+      "imageheight": 32,
+      "imagewidth": 32
     }
   ],
   "tilewidth": 64,
