@@ -6,24 +6,31 @@ import (
 	"image/color"
 	"log"
 
+	"github.com/ev-the-dev/rpg-tutorial/animations"
 	"github.com/ev-the-dev/rpg-tutorial/entities"
+	"github.com/ev-the-dev/rpg-tutorial/spritesheet"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
 type Game struct {
-	camera      *Camera
-	colliders   []image.Rectangle
-	enemies     []*entities.Enemy
-	player      *entities.Player
-	potions     []*entities.Potion
-	tileMapImg  *ebiten.Image
-	tileMapJSON *TileMapJSON
-	tilesets    []Tileset
+	camera                 *Camera
+	colliders              []image.Rectangle
+	enemies                []*entities.Enemy
+	player                 *entities.Player
+	playerRunningAnimation *animations.Animation
+	playerSpriteSheet      *spritesheet.SpriteSheet
+	potions                []*entities.Potion
+	tileMapImg             *ebiten.Image
+	tileMapJSON            *TileMapJSON
+	tilesets               []Tileset
 }
 
 func (g *Game) Update() error {
+
+	g.playerRunningAnimation.Update()
+
 	g.player.Dx = 0.0
 	g.player.Dy = 0.0
 
@@ -109,7 +116,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	g.drawBackground(screen, &opts)
 
-	g.drawSprite(screen, g.player.Sprite, &opts)
+	g.drawPlayer(screen, g.player.Sprite, &opts)
 
 	for _, enemy := range g.enemies {
 		g.drawSprite(screen, enemy.Sprite, &opts)
@@ -189,6 +196,19 @@ func (g *Game) drawBackground(screen *ebiten.Image, opts *ebiten.DrawImageOption
 	}
 }
 
+// Temp
+func (g *Game) drawPlayer(screen *ebiten.Image, sprite *entities.Sprite, opts *ebiten.DrawImageOptions) {
+	opts.GeoM.Translate(sprite.X, sprite.Y)
+	opts.GeoM.Translate(g.camera.X, g.camera.Y)
+
+	screen.DrawImage(sprite.Img.SubImage(
+		g.playerSpriteSheet.Rect(g.playerRunningAnimation.Frame()),
+	).(*ebiten.Image),
+		opts)
+
+	opts.GeoM.Reset()
+}
+
 func (g *Game) drawSprite(screen *ebiten.Image, sprite *entities.Sprite, opts *ebiten.DrawImageOptions) {
 	opts.GeoM.Translate(sprite.X, sprite.Y)
 	opts.GeoM.Translate(g.camera.X, g.camera.Y)
@@ -210,6 +230,10 @@ func main() {
 	if err != nil {
 		log.Fatalf("playerImg err: %v", err)
 	}
+
+	playerRunningAnim := animations.NewAnimation(4, 12, 4, 20.0)
+
+	playerSpriteSheet := spritesheet.NewSpriteSheet(4, 7, 16)
 
 	potionImg, _, err := ebitenutil.NewImageFromFile("./assets/images/heart_potion.png")
 	if err != nil {
@@ -250,6 +274,8 @@ func main() {
 			},
 			Health: 3,
 		},
+		playerRunningAnimation: playerRunningAnim,
+		playerSpriteSheet:      playerSpriteSheet,
 		enemies: []*entities.Enemy{
 			{
 				Sprite: &entities.Sprite{
