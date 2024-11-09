@@ -15,21 +15,18 @@ import (
 )
 
 type Game struct {
-	camera                 *Camera
-	colliders              []image.Rectangle
-	enemies                []*entities.Enemy
-	player                 *entities.Player
-	playerRunningAnimation *animations.Animation
-	playerSpriteSheet      *spritesheet.SpriteSheet
-	potions                []*entities.Potion
-	tileMapImg             *ebiten.Image
-	tileMapJSON            *TileMapJSON
-	tilesets               []Tileset
+	camera            *Camera
+	colliders         []image.Rectangle
+	enemies           []*entities.Enemy
+	player            *entities.Player
+	playerSpriteSheet *spritesheet.SpriteSheet
+	potions           []*entities.Potion
+	tileMapImg        *ebiten.Image
+	tileMapJSON       *TileMapJSON
+	tilesets          []Tileset
 }
 
 func (g *Game) Update() error {
-
-	g.playerRunningAnimation.Update()
 
 	g.player.Dx = 0.0
 	g.player.Dy = 0.0
@@ -53,6 +50,11 @@ func (g *Game) Update() error {
 
 	g.player.Y += g.player.Dy
 	CheckCollisionVertical(g.player.Sprite, g.colliders)
+
+	activeAnim := g.player.ActiveAnimation(int(g.player.Dx), int(g.player.Dy))
+	if activeAnim != nil {
+		activeAnim.Update()
+	}
 
 	for _, enemy := range g.enemies {
 		enemy.Dx = 0.0
@@ -201,8 +203,14 @@ func (g *Game) drawPlayer(screen *ebiten.Image, sprite *entities.Sprite, opts *e
 	opts.GeoM.Translate(sprite.X, sprite.Y)
 	opts.GeoM.Translate(g.camera.X, g.camera.Y)
 
+	playerFrame := 0
+	activeAnim := g.player.ActiveAnimation(int(g.player.Dx), int(g.player.Dy))
+	if activeAnim != nil {
+		playerFrame = activeAnim.Frame()
+	}
+
 	screen.DrawImage(sprite.Img.SubImage(
-		g.playerSpriteSheet.Rect(g.playerRunningAnimation.Frame()),
+		g.playerSpriteSheet.Rect(playerFrame),
 	).(*ebiten.Image),
 		opts)
 
@@ -230,8 +238,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("playerImg err: %v", err)
 	}
-
-	playerRunningAnim := animations.NewAnimation(4, 12, 4, 20.0)
 
 	playerSpriteSheet := spritesheet.NewSpriteSheet(4, 7, 16)
 
@@ -267,15 +273,20 @@ func main() {
 			image.Rect(100, 100, 116, 116),
 		},
 		player: &entities.Player{
+			Animations: map[entities.PlayerState]*animations.Animation{
+				entities.Up:    animations.NewAnimation(5, 13, 4, 20.0),
+				entities.Down:  animations.NewAnimation(4, 12, 4, 20.0),
+				entities.Left:  animations.NewAnimation(6, 14, 4, 20.0),
+				entities.Right: animations.NewAnimation(7, 15, 4, 20.0),
+			},
+			Health: 3,
 			Sprite: &entities.Sprite{
 				Img: playerImg,
 				X:   50,
 				Y:   50,
 			},
-			Health: 3,
 		},
-		playerRunningAnimation: playerRunningAnim,
-		playerSpriteSheet:      playerSpriteSheet,
+		playerSpriteSheet: playerSpriteSheet,
 		enemies: []*entities.Enemy{
 			{
 				Sprite: &entities.Sprite{
