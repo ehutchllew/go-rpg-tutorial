@@ -1,6 +1,9 @@
 package entities
 
-import "github.com/ev-the-dev/rpg-tutorial/animations"
+import (
+	"github.com/ev-the-dev/rpg-tutorial/animations"
+	"github.com/ev-the-dev/rpg-tutorial/components"
+)
 
 type PlayerState uint8
 
@@ -14,6 +17,7 @@ const (
 type Player struct {
 	*Sprite
 	Animations map[PlayerState]*animations.Animation
+	CombatComp *components.BasicCombat
 	Health     uint
 }
 

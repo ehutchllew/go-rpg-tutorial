@@ -7,11 +7,13 @@ import (
 	"log"
 
 	"github.com/ev-the-dev/rpg-tutorial/animations"
+	"github.com/ev-the-dev/rpg-tutorial/components"
 	"github.com/ev-the-dev/rpg-tutorial/constants"
 	"github.com/ev-the-dev/rpg-tutorial/entities"
 	"github.com/ev-the-dev/rpg-tutorial/spritesheet"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
@@ -73,7 +75,8 @@ func NewGame() *Game {
 				entities.Left:  animations.NewAnimation(6, 14, 4, 20.0),
 				entities.Right: animations.NewAnimation(7, 15, 4, 20.0),
 			},
-			Health: 3,
+			CombatComp: components.NewBasicCombat(1, 3),
+			Health:     3,
 			Sprite: &entities.Sprite{
 				Img: playerImg,
 				X:   50,
@@ -83,20 +86,22 @@ func NewGame() *Game {
 		playerSpriteSheet: playerSpriteSheet,
 		enemies: []*entities.Enemy{
 			{
+				CombatComp:    components.NewBasicCombat(1, 3),
+				FollowsPlayer: true,
 				Sprite: &entities.Sprite{
 					Img: skeletonImg,
 					X:   100,
 					Y:   100,
 				},
-				FollowsPlayer: true,
 			},
 			{
+				CombatComp:    components.NewBasicCombat(1, 3),
+				FollowsPlayer: false,
 				Sprite: &entities.Sprite{
 					Img: skeletonImg,
 					X:   150,
 					Y:   150,
 				},
-				FollowsPlayer: false,
 			},
 		},
 		potions: []*entities.Potion{
@@ -170,12 +175,47 @@ func (g *Game) Update() error {
 		checkCollisionHorizontal(enemy.Sprite, g.colliders)
 	}
 
-	for _, potion := range g.potions {
-		if g.player.X > potion.X {
-			g.player.Health += potion.AmtHeal
-			fmt.Printf("Picked up potion! Health: (%d)\n", g.player.Health)
+	clicked := inpututil.IsMouseButtonJustPressed(ebiten.MouseButton0)
+	cX, cY := ebiten.CursorPosition()
+
+	deadEnemies := make(map[int]struct{})
+	for enemyIndex, enemy := range g.enemies {
+		rect := image.Rect(
+			int(enemy.X),
+			int(enemy.Y),
+			int(enemy.X)+constants.Tilesize,
+			int(enemy.Y)+constants.Tilesize,
+		)
+
+		// is cursor within rect?
+		if cX > rect.Min.X && cX <= rect.Max.X && cY > rect.Min.Y && cY <= rect.Max.Y {
+			if clicked {
+				fmt.Println("Damaging Enemy")
+				enemy.CombatComp.Damage(g.player.CombatComp.AttackPower())
+
+				if enemy.CombatComp.Health() <= 0 {
+					fmt.Println("Enemy Eliminated")
+					deadEnemies[enemyIndex] = struct{}{}
+				}
+			}
 		}
 	}
+	if len(deadEnemies) > 0 {
+		newEnemies := make([]*entities.Enemy, 0)
+		for index, enemy := range g.enemies {
+			if _, exists := deadEnemies[index]; !exists {
+				newEnemies = append(newEnemies, enemy)
+			}
+		}
+		g.enemies = newEnemies
+	}
+
+	// for _, potion := range g.potions {
+	// 	if g.player.X > potion.X {
+	// 		g.player.Health += potion.AmtHeal
+	// 		fmt.Printf("Picked up potion! Health: (%d)\n", g.player.Health)
+	// 	}
+	// }
 
 	screenWidth, screenHeight := ebiten.WindowSize()
 	g.camera.FollowTarget(
