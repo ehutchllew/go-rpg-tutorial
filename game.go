@@ -5,6 +5,7 @@ import (
 	"image"
 	"image/color"
 	"log"
+	"math"
 
 	"github.com/ev-the-dev/rpg-tutorial/animations"
 	"github.com/ev-the-dev/rpg-tutorial/components"
@@ -86,7 +87,7 @@ func NewGame() *Game {
 		playerSpriteSheet: playerSpriteSheet,
 		enemies: []*entities.Enemy{
 			{
-				CombatComp:    components.NewBasicCombat(1, 3),
+				CombatComp:    components.NewEnemyCombat(30, 1, 3),
 				FollowsPlayer: true,
 				Sprite: &entities.Sprite{
 					Img: skeletonImg,
@@ -95,7 +96,7 @@ func NewGame() *Game {
 				},
 			},
 			{
-				CombatComp:    components.NewBasicCombat(1, 3),
+				CombatComp:    components.NewEnemyCombat(30, 1, 3),
 				FollowsPlayer: false,
 				Sprite: &entities.Sprite{
 					Img: skeletonImg,
@@ -177,9 +178,21 @@ func (g *Game) Update() error {
 
 	clicked := inpututil.IsMouseButtonJustPressed(ebiten.MouseButton0)
 	cX, cY := ebiten.CursorPosition()
+	// ensures cursor coordinate follows camera movement/accounts for camera offset
+	cX += int(g.camera.X)
+	cY += int(g.camera.Y)
+
+	g.player.CombatComp.Update()
+	playerRect := image.Rect(
+		int(g.player.X),
+		int(g.player.Y),
+		int(g.player.X)+constants.Tilesize,
+		int(g.player.Y)+constants.Tilesize,
+	)
 
 	deadEnemies := make(map[int]struct{})
 	for enemyIndex, enemy := range g.enemies {
+		enemy.CombatComp.Update()
 		rect := image.Rect(
 			int(enemy.X),
 			int(enemy.Y),
@@ -187,9 +200,20 @@ func (g *Game) Update() error {
 			int(enemy.Y)+constants.Tilesize,
 		)
 
+		// if enemy overlaps player
+		if rect.Overlaps(playerRect) {
+			if enemy.CombatComp.Attack() {
+				g.player.CombatComp.Damage(enemy.CombatComp.AttackPower())
+				fmt.Printf("Enemy has damaged player! Health: %d\n", g.player.CombatComp.Health())
+				if g.player.CombatComp.Health() <= 0 {
+					fmt.Println("Player has died...")
+				}
+			}
+		}
+
 		// is cursor within rect?
 		if cX > rect.Min.X && cX <= rect.Max.X && cY > rect.Min.Y && cY <= rect.Max.Y {
-			if clicked {
+			if clicked && math.Sqrt(math.Pow(float64(cX)-g.player.X+constants.Tilesize/2, 2)+math.Pow(float64(cY)-g.player.Y+constants.Tilesize/2, 2)) < constants.Tilesize*5 {
 				fmt.Println("Damaging Enemy")
 				enemy.CombatComp.Damage(g.player.CombatComp.AttackPower())
 

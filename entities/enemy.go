@@ -4,6 +4,6 @@ import "github.com/ev-the-dev/rpg-tutorial/components"
 
 type Enemy struct {
 	*Sprite
-	CombatComp    *components.BasicCombat
+	CombatComp    *components.EnemyCombat
 	FollowsPlayer bool
 }
