@@ -1,9 +1,11 @@
-package main
+package tilemaps
 
 import (
 	"encoding/json"
 	"os"
 	"path"
+
+	"github.com/ev-the-dev/rpg-tutorial/tilesets"
 )
 
 type TileMapLayerJSON struct {
@@ -18,20 +20,20 @@ type TileMapJSON struct {
 	Tilesets []map[string]any   `json:"tilesets"`
 }
 
-func (t *TileMapJSON) GenTilesets() ([]Tileset, error) {
+func (t *TileMapJSON) GenTilesets() ([]tilesets.Tileset, error) {
 
-	tilesets := make([]Tileset, 0)
+	ts := make([]tilesets.Tileset, 0)
 	for _, tilesetData := range t.Tilesets {
 		tilesetPath := path.Join("assets/maps/", tilesetData["source"].(string))
-		tileset, err := NewTileset(tilesetPath, int(tilesetData["firstgid"].(float64)))
+		tileset, err := tilesets.NewTileset(tilesetPath, int(tilesetData["firstgid"].(float64)))
 		if err != nil {
 			return nil, err
 		}
 
-		tilesets = append(tilesets, tileset)
+		ts = append(ts, tileset)
 	}
 
-	return tilesets, nil
+	return ts, nil
 }
 
 func NewTileMapJSON(filepath string) (*TileMapJSON, error) {

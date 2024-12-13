@@ -1,4 +1,4 @@
-package main
+package tilesets
 
 import (
 	"encoding/json"
@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/ev-the-dev/rpg-tutorial/constants"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 )
@@ -30,11 +31,11 @@ func (u *UniformTileset) Img(id int) *ebiten.Image {
 	srcX := (id) % 22 // 22 hardcoded because tileset file shows last index on row as id 21 (0th based)
 	srcY := (id) / 22
 	// convert the src tile position to src pixel position
-	srcX *= 16
-	srcY *= 16
+	srcX *= constants.Tilesize
+	srcY *= constants.Tilesize
 
 	return u.img.SubImage(
-		image.Rect(srcX, srcY, srcX+16, srcY+16),
+		image.Rect(srcX, srcY, srcX+constants.Tilesize, srcY+constants.Tilesize),
 	).(*ebiten.Image)
 }
 
