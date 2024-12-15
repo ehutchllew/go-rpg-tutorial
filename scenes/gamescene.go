@@ -25,6 +25,7 @@ type GameScene struct {
 	camera            *cameras.Camera
 	colliders         []image.Rectangle
 	enemies           []*entities.Enemy
+	loaded            bool
 	player            *entities.Player
 	playerSpriteSheet *spritesheet.SpriteSheet
 	potions           []*entities.Potion
@@ -76,29 +77,29 @@ func (g *GameScene) Draw(screen *ebiten.Image) {
 }
 
 func (g *GameScene) FirstLoad() {
-	playerImg, _, err := ebitenutil.NewImageFromFile("../assets/images/ninja.png")
+	playerImg, _, err := ebitenutil.NewImageFromFile("./assets/images/ninja.png")
 	if err != nil {
 		log.Fatalf("playerImg err: %v", err)
 	}
 
 	playerSpriteSheet := spritesheet.NewSpriteSheet(4, 7, constants.Tilesize)
 
-	potionImg, _, err := ebitenutil.NewImageFromFile("../assets/images/heart_potion.png")
+	potionImg, _, err := ebitenutil.NewImageFromFile("./assets/images/heart_potion.png")
 	if err != nil {
 		log.Fatalf("potionImg err: %v", err)
 	}
 
-	skeletonImg, _, err := ebitenutil.NewImageFromFile("../assets/images/skeleton.png")
+	skeletonImg, _, err := ebitenutil.NewImageFromFile("./assets/images/skeleton.png")
 	if err != nil {
 		log.Fatalf("skeletonImg err: %v", err)
 	}
 
-	tileMapImg, _, err := ebitenutil.NewImageFromFile("../assets/images/TilesetFloor.png")
+	tileMapImg, _, err := ebitenutil.NewImageFromFile("./assets/images/TilesetFloor.png")
 	if err != nil {
 		log.Fatalf("tileMapImg err: %v", err)
 	}
 
-	tileMapJson, err := tilemaps.NewTileMapJSON("../assets/maps/spawn.json")
+	tileMapJson, err := tilemaps.NewTileMapJSON("./assets/maps/spawn.json")
 	if err != nil {
 		log.Fatalf("tileMapJson err: %v", err)
 	}
@@ -168,6 +169,11 @@ func (g *GameScene) FirstLoad() {
 	g.tileMapImg = tileMapImg
 	g.tileMapJSON = tileMapJson
 	g.tilesets = tilesets
+	g.loaded = true
+}
+
+func (g *GameScene) IsLoaded() bool {
+	return g.loaded
 }
 
 func (g *GameScene) OnEnter() {
@@ -177,6 +183,12 @@ func (g *GameScene) OnExit() {
 }
 
 func (g *GameScene) Update() SceneId {
+	if inpututil.IsKeyJustPressed(ebiten.KeyQ) {
+		return ExitSceneId
+	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyEnter) {
+		return PauseSceneId
+	}
 
 	g.player.Dx = 0.0
 	g.player.Dy = 0.0

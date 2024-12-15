@@ -6,12 +6,15 @@ type SceneId uint
 
 const (
 	GameSceneId SceneId = iota
+	PauseSceneId
 	StartSceneId
+	ExitSceneId
 )
 
 type Scene interface {
 	Draw(screen *ebiten.Image)
 	FirstLoad()
+	IsLoaded() bool
 	OnEnter()
 	OnExit()
 	Update() SceneId
